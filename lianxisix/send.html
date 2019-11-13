@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>Document</title>
+   <script src="./jquery.js"></script>
+</head>
+<body>
+   <div id="per_box" style="width: 350px; height: 15px; background-color: #cccccc">
+   <div id="per" style="width: 0%; height: 100%; background-color: #007CD5"></div>
+   <span id="per_num"></span>
+</div>
+<br />
+<input type="file" name="file_tag" id="file_tag">
+<input type="button" value="上传" id = "upload_btn">
+
+</body>
+</html>
+<script type="text/javascript">
+	$(document).ready(function(){
+		//绑定点击事件
+		$("#upload_btn").click(function(){
+			//获取上传图片的信息
+			 var file=$("#file_tag")[0].files[0];
+			 //如果没有文件被上传了 那么强制弹出 浏览按钮
+			 if (!file) {
+			 	//绑定一个点击事件
+			 	$('#file_tag').trigger("click");
+			 }
+			 console.log(file);
+			 var chunk;//定义这个图片被我切了多少个
+
+			 upload(file);//把这个文件 传给方法upload方法
+
+			 //定义上传方法
+			 function upload(files){
+			 	var every_size=1024;//每片显示的数据
+			 	var name = files.name+"_chunk";//文件名+ _chunk
+			 	var chunk=window.localStorage.getItem(name) || 1; //获取当前片数 如果没有 为1片
+			 	var chunk=parseInt(chunk); //取切片数据取整
+			 	var alls=Math.ceil(files.size/every_size); //获取总页码 并用数学函数取整
+
+			 	var begin=(chunk-1)*every_size;//获取开始位置 就是当前位置 -1 * 每页显示的数据															
+			 	var limit= begin > files.size ? files.size : chunk *every_size;//如果开始位置数大于 总数据 就取总数数据 如果不是 就为当前页 * 每页显示的条数
+				var data=files.slice(begin,limit); //说这事每一页的数据
+				var per=(limit/file.size * 100).toFixed(2);// 计数百分比  开始数据位置/切片总数据
+
+				//发送数据
+				var form = new FormData();
+				form.append("data",data);
+				form.append("filename",files.name);
+				form.append("filesize",files.size);
+
+				$.ajax({
+					url:"./file.php",
+					data:form,
+					type:"post",
+					dataType:"json",
+					processData: false,
+					contentType: false,
+					cache:false,
+					success:function(msg){
+						console.log(msg);
+						if (msg.error==0) {
+							if (chunk >= alls) {
+
+								per="100%";
+								$("#per").css({width:per});
+								$("#per_num").text(per);
+								var video="<video src='"+msg.data.path+"' controls='controls'></video>";
+								$('#show_img').append(video);
+
+							}else{
+								chunk =chunk+1;
+								per=per + "%";
+								$("#per").css({width:per});
+								$("#per_num").text(per);
+								window.localStorage.setItem(name,chunk);
+								upload(file);
+							}
+						}
+					}
+
+
+
+
+				});
+
+
+
+
+
+
+			 }
+
+		});		
+
+	});
+
+</script>
